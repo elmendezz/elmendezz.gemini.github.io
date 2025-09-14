@@ -1,46 +1,156 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Perfil - Gemini Server</title>
+  <meta charset="UTF-8">
+  <title>Perfil de Usuario</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    :root{ --bg:#121212; --text:#e0e0e0; --btn:#1a73e8; --panel:#1e1e1e; }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{ font-family:"Google Sans","Roboto",sans-serif; background:var(--bg); color:var(--text); padding:18px; min-height:100vh; }
-    header{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
-    header h1{ color:var(--btn); font-size:20px; }
-    .card{ background:var(--panel); padding:16px; border-radius:12px; max-width:900px; margin:0 auto; }
-    .profile-info p{ margin-bottom:10px; line-height:1.6; }
-    strong{ color:var(--btn); }
+    body {
+      background: #121212;
+      color: #e0e0e0;
+      font-family: "Roboto", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .profile-container {
+      background: #232323;
+      border-radius: 18px;
+      padding: 28px 22px 18px 22px;
+      margin-top: 36px;
+      width: 100%;
+      max-width: 370px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #4a4a4a;
+      object-fit: cover;
+      margin-bottom: 20px;
+      border: 2px solid #1a73e8;
+    }
+    .input-group {
+      margin-bottom: 18px;
+      width: 100%;
+    }
+    .input-group label {
+      font-size: 15px;
+      opacity: 0.7;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .input-group input[type="text"], .input-group input[type="url"] {
+      width: 100%;
+      padding: 9px 13px;
+      background: #2c2c2c;
+      border: 1px solid #444;
+      color: #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+      margin-bottom: 5px;
+    }
+    .btn {
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 0;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #1565c0;
+    }
+    .back-link {
+      color: #1a73e8;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 12px;
+      font-size: 17px;
+    }
+    .success-message {
+      color: #4caf50;
+      margin-bottom: 8px;
+      font-size: 15px;
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <button onclick="location.href='index.html'">⬅ Volver</button>
-    <h1>Mi Perfil y Sesión</h1>
-  </header>
-
-  <div class="card">
-    <div class="profile-info">
-      <p><strong>ID de Usuario (ejemplo):</strong> <span id="userId">...</span></p>
-      <p><strong>IP de la Sesión (ejemplo):</strong> <span id="ipAddress">...</span></p>
-      <p><strong>Estado de la Sesión:</strong> <span id="sessionStatus">...</span></p>
-      <p><strong>Último Login:</strong> <span id="lastLogin">...</span></p>
-    </div>
-    <hr style="margin: 18px 0; border: none; border-top: 1px solid #333;">
-    <p style="opacity:.7;font-size:14px;">(Nota: Esta página es una demostración. Para obtener datos reales como la IP o el ID de sesión, se necesitaría un backend que los proporcione.)</p>
+  <div class="profile-container">
+    <img src="https://ui-avatars.com/api/?name=Usuario" alt="avatar" id="avatarImg" class="avatar">
+    <form id="profileForm" autocomplete="off">
+      <div class="input-group">
+        <label for="username">Nombre:</label>
+        <input type="text" id="username" name="username" maxlength="30" required>
+      </div>
+      <div class="input-group">
+        <label for="avatarUrl">URL de foto de perfil (opcional):</label>
+        <input type="url" id="avatarUrl" name="avatarUrl" placeholder="https://...">
+      </div>
+      <div class="success-message" id="successMsg">¡Perfil guardado!</div>
+      <button type="submit" class="btn">Guardar Cambios</button>
+    </form>
+    <div class="back-link" onclick="window.location.href='index.html'">← Volver al chat</div>
   </div>
+
   <script>
-    // Simulación de datos para demostración.
-    // En un entorno real, estos datos vendrían de un servidor.
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("userId").innerText = "user-" + Math.random().toString(36).substr(2, 9);
-      document.getElementById("ipAddress").innerText = "203.0.113." + Math.floor(Math.random() * 255);
-      document.getElementById("sessionStatus").innerText = "Activa";
-      document.getElementById("lastLogin").innerText = new Date().toLocaleString();
+    // Cargar datos guardados al iniciar
+    function loadProfile() {
+      const profile = JSON.parse(localStorage.getItem("userProfile") || "{}");
+      document.getElementById('username').value = profile.username || "Usuario";
+      document.getElementById('avatarUrl').value = profile.avatarUrl || "";
+      setAvatar(profile.avatarUrl, profile.username);
+    }
+
+    // Cambiar imagen del avatar
+    function setAvatar(url, username) {
+      const img = document.getElementById('avatarImg');
+      if (url && url.trim() !== "") {
+        img.src = url;
+      } else {
+        // Usa un servicio de avatars por defecto (iniciales)
+        img.src = "https://ui-avatars.com/api/?name=" + encodeURIComponent(username || "Usuario");
+      }
+    }
+
+    // Guardar cambios del perfil
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim() || "Usuario";
+      const avatarUrl = document.getElementById('avatarUrl').value.trim();
+
+      const profile = { username, avatarUrl };
+      localStorage.setItem("userProfile", JSON.stringify(profile));
+      setAvatar(avatarUrl, username);
+
+      // Mostrar mensaje de éxito
+      const msg = document.getElementById('successMsg');
+      msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; }, 1500);
     });
+
+    // Cambiar avatar al escribir URL
+    document.getElementById('avatarUrl').addEventListener('input', function() {
+      setAvatar(this.value, document.getElementById('username').value);
+    });
+
+    // Cambiar avatar al cambiar nombre
+    document.getElementById('username').addEventListener('input', function() {
+      setAvatar(document.getElementById('avatarUrl').value, this.value);
+    });
+
+    // Cargar al iniciar
+    loadProfile();
   </script>
 </body>
 </html>
-

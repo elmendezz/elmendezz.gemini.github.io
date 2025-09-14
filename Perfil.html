@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Perfil - Servidor Gemini</title>
+  <style>
+    :root{ --bg:#121212; --text:#e0e0e0; --btn:#1a73e8; --panel:#1e1e1e; --input-bg:#2c2c2c; --input-border:#444; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{ font-family:"Google Sans","Roboto",sans-serif; background:var(--bg); color:var(--text); padding:18px; min-height:100vh; }
+    header{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+    header h1{ color:var(--btn); font-size:20px; }
+    .card{ background:var(--panel); padding:16px; border-radius:12px; max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+    .profile-info { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .avatar-container { width: 96px; height: 96px; border-radius: 50%; overflow: hidden; background: #333; display: flex; align-items: center; justify-content: center; }
+    .avatar-container img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-name { font-size: 24px; font-weight: 500; }
+    .form-group{ display:flex; flex-direction:column; gap:8px; }
+    label{ font-size:14px; opacity:.8; }
+    input[type=text], input[type=url], textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--input-border); background:var(--input-bg); color:var(--text); }
+    textarea{ resize:vertical; min-height:80px; }
+    .file-input-wrapper{
+        position:relative;overflow:hidden;display:inline-block;border:1px solid var(--input-border);
+        background:var(--input-bg);color:var(--text);padding:10px 12px;border-radius:10px;cursor:pointer;
+        text-align:center;
+    }
+    .file-input-wrapper input[type=file]{ position:absolute; left:0; top:0; opacity:0; cursor:pointer; }
+    .actions{ display:flex; justify-content:center; gap:12px; margin-top:20px; }
+    button{ background:var(--btn); color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer; }
+    button.secondary{ background:#4a4a4a; }
+  </style>
+</head>
+<body>
+  <header>
+    <button onclick="location.href='index.html'">⬅ Volver</button>
+    <h1>Mi Perfil</h1>
+  </header>
+
+  <div class="card">
+    <div class="profile-info">
+      <div class="avatar-container">
+        <img id="profile-avatar" src="https://via.placeholder.com/96" alt="Avatar de perfil">
+      </div>
+      <h2 class="profile-name" id="profile-name-display">Nombre de Usuario</h2>
+      <p id="profile-data-display" style="text-align:center; opacity:.7;">¡Aún no tienes datos!</p>
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #333;">
+
+    <div class="form-group">
+      <label for="nameInput">Nombre:</label>
+      <input type="text" id="nameInput" placeholder="Introduce tu nombre">
+    </div>
+
+    <div class="form-group">
+      <label for="aboutInput">Acerca de mí:</label>
+      <textarea id="aboutInput" placeholder="Escribe algo sobre ti..."></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label>Imagen de Perfil:</label>
+      <input type="url" id="avatarUrlInput" placeholder="Pega la URL de tu imagen de perfil">
+    </div>
+
+    <div style="text-align: center; font-size: 14px; opacity: 0.8; margin: 8px 0;">o</div>
+    
+    <div class="form-group">
+        <label for="avatarFileInput" class="file-input-wrapper">
+          <span>Sube una imagen</span>
+          <input type="file" id="avatarFileInput" accept="image/*">
+        </label>
+    </div>
+
+    <div class="actions">
+      <button onclick="saveProfile()">💾 Guardar Perfil</button>
+      <button class="secondary" onclick="loadProfile()">🔄 Resetear</button>
+    </div>
+  </div>
+
+  <script>
+    // BOT Version:2.1
+    // Change log:
+    // - Se añadió una función para comprimir imágenes antes de guardarlas en localStorage, solucionando el error de "exceeded the quota".
+    
+    document.addEventListener("DOMContentLoaded", loadProfile);
+
+    function loadProfile() {
+      try {
+        const savedProfile = JSON.parse(localStorage.getItem('userProfile'));
+        if (savedProfile) {
+          document.getElementById('nameInput').value = savedProfile.name || '';
+          document.getElementById('aboutInput').value = savedProfile.about || '';
+          document.getElementById('avatarUrlInput').value = savedProfile.avatarUrl || '';
+          
+          document.getElementById('profile-name-display').innerText = savedProfile.name || 'Nombre de Usuario';
+          document.getElementById('profile-data-display').innerText = savedProfile.about || '¡Aún no tienes datos!';
+          
+          if (savedProfile.avatarUrl) {
+            document.getElementById('profile-avatar').src = savedProfile.avatarUrl;
+          } else if (savedProfile.avatarBase64) {
+            document.getElementById('profile-avatar').src = savedProfile.avatarBase64;
+          } else {
+            document.getElementById('profile-avatar').src = 'https://via.placeholder.com/96';
+          }
+        }
+      } catch (e) {
+        console.error("Error al cargar el perfil:", e);
+      }
+    }
+
+    async function saveProfile() {
+      const name = document.getElementById('nameInput').value.trim();
+      const about = document.getElementById('aboutInput').value.trim();
+      const avatarUrl = document.getElementById('avatarUrlInput').value.trim();
+      const avatarFile = document.getElementById('avatarFileInput').files[0];
+      
+      let avatarBase64 = '';
+
+      if (avatarFile) {
+        try {
+          avatarBase64 = await compressImage(avatarFile);
+          document.getElementById('avatarUrlInput').value = ''; // Limpiar la URL si se sube un archivo
+        } catch(e) {
+          alert("❌ Error al procesar el archivo. Intenta de nuevo.");
+          return;
+        }
+      } else if (avatarUrl) {
+          // No necesitamos comprimir la URL, solo validamos que no esté vacía
+      } else {
+          alert("Por favor, introduce una URL o sube una imagen.");
+          return;
+      }
+
+      const profileData = {
+        name: name,
+        about: about,
+        avatarUrl: avatarUrl,
+        avatarBase64: avatarBase64
+      };
+
+      try {
+        localStorage.setItem('userProfile', JSON.stringify(profileData));
+        alert('✅ Perfil guardado con éxito!');
+        loadProfile(); // Recargar la página para mostrar los cambios
+      } catch (e) {
+        alert("❌ No se pudo guardar el perfil. El archivo de imagen es demasiado grande. Por favor, sube una imagen más pequeña.");
+        console.error("Error:", e);
+      }
+    }
+
+    // Nueva función para comprimir la imagen
+    function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = event => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 256; // Tamaño máximo de la imagen
+            const scaleSize = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 0.7 es la calidad de compresión
+            resolve(compressedBase64);
+          };
+          img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    // Lógica para previsualizar la imagen de URL
+    document.getElementById('avatarUrlInput').addEventListener('input', (e) => {
+        const url = e.target.value;
+        if (url) {
+            document.getElementById('avatarFileInput').value = ''; // Limpiar el input de archivo
+            document.getElementById('profile-avatar').src = url;
+        }
+    });
+
+    // Lógica para previsualizar la imagen de archivo
+    document.getElementById('avatarFileInput').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            document.getElementById('avatarUrlInput').value = ''; // Limpiar la URL
+            const base64 = await toBase64(file);
+            document.getElementById('profile-avatar').src = base64;
+        }
+    });
+
+    // Función auxiliar para previsualizar la imagen, ya que la compresión solo se hace al guardar.
+    const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+  </script>
+</body>
+</html>

@@ -4,6 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Conversaciones - Gemini Server</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root{ --bg:#121212; --text:#e0e0e0; --btn:#1a73e8; --panel:#1e1e1e; }
     *{box-sizing:border-box;margin:0;padding:0}
@@ -15,23 +16,19 @@
     .item{ background:var(--panel); padding:12px; border-radius:10px; }
     .item-header{ display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
     .item:hover .item-header{ opacity: .8; }
-    .item-header strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%; }
-    .item-header small { flex-shrink: 0; }
-    .item-content { margin-top: 10px; display: none; }
-    .item-content.active { display: block; }
+    .item-title{ font-weight: bold; }
+    .item-date{ font-size: 12px; opacity: .6; }
     .controls{ margin-top:12px; display:flex; gap:8px; }
     button{ background:var(--btn); color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer; }
-    button.small{ padding: 6px 10px; font-size: 12px; }
-    button.secondary{ background: #4a4a4a; }
-    
-    /* Para ver una conversación específica */
-    #conversation-list-wrapper { display: flex; flex-direction: column; flex-grow: 1; }
-    #conversation-detail { display: none; flex-direction: column; gap: 10px; flex-grow: 1; }
-    #conversation-detail .message { padding: 10px 14px; border-radius: 18px; max-width: 80%; word-wrap: break-word; }
-    #conversation-detail .user-message { align-self: flex-end; background: var(--btn); color: #fff; }
-    #conversation-detail .bot-message { align-self: flex-start; background: #2c2c2c; color: var(--text); border: 1px solid #444; }
+    button.secondary{ background:#4a4a4a; }
+    .conversation-view{ display:none; flex-direction:column; }
+    #messages-container{ flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #222; border-radius: 8px; }
+    .user-message, .bot-message {
+      padding: 10px 14px; border-radius: 18px; max-width: 80%; word-wrap: break-word;
+    }
+    .user-message { align-self: flex-end; background: var(--btn); color: #fff; }
+    .bot-message { align-self: flex-start; background: #2c2c2c; color: var(--text); }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
   <header>
@@ -39,32 +36,27 @@
     <h1 id="page-title">Conversaciones</h1>
   </header>
 
-  <div class="list" id="conversation-list-wrapper">
-    <div id="conversation-list"></div>
-    <div class="controls" style="margin-top: auto; padding-top: 20px;">
-      <button onclick="clearAllConversations()">❌ Borrar todas las conversaciones</button>
+  <div id="conversation-list-wrapper" class="list">
+    <div class="controls">
+      <button onclick="clearAllConversations()">❌ Borrar todo</button>
+      <button onclick="exportAllConversations()">📂 Exportar</button>
     </div>
   </div>
 
-  <div class="conversation-view" id="conversation-detail">
+  <div id="conversation-detail" class="conversation-view">
     <div id="messages-container"></div>
-    <div class="controls">
-      <button onclick="showConversationsList()">⬅ Volver a la lista</button>
-      <button onclick="useThisConversation()">Usar esta conversación</button>
+    <div class="controls" style="margin-top: 20px;">
+        <button onclick="showConversationsList()">⬅ Volver a la lista</button>
+        <button onclick="useThisConversation()">🚀 Cargar conversación</button>
     </div>
   </div>
 
   <script>
+    // BOT Version:1.1
+    // Change log:
+    // - Lógica completa para la página de conversaciones.
+    
     let selectedConversationId = null;
-
-    function escapeHtml(unsafe) {
-      return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
 
     function getSavedConversations() {
       try {
@@ -75,35 +67,41 @@
       }
     }
 
-    function renderConversationsList(){
+    function renderConversationsList() {
+      const list = document.getElementById("conversation-list-wrapper");
       const conversations = getSavedConversations();
-      const list = document.getElementById("conversation-list");
-      list.innerHTML = "";
-      if (!conversations.length) {
-        list.innerHTML = "<p style='opacity:.7;text-align:center'>No hay conversaciones guardadas.</p>";
+      list.innerHTML = `
+        <div class="controls">
+          <button onclick="clearAllConversations()">❌ Borrar todo</button>
+          <button onclick="exportAllConversations()">📂 Exportar</button>
+        </div>
+      `;
+
+      if (conversations.length === 0) {
+        list.innerHTML += "<p style='opacity:.7;text-align:center'>No hay conversaciones guardadas.</p>";
         return;
       }
+      
       conversations.forEach(conv => {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.innerHTML = `
-          <div class="item-header" onclick="loadConversation(${conv.id})">
-            <strong>${escapeHtml(conv.title)}</strong>
-            <small>${new Date(conv.timestamp).toLocaleString()}</small>
+        const item = document.createElement("div");
+        item.className = "item";
+        item.innerHTML = `
+          <div class="item-header" onclick="showConversationDetail(${conv.id})">
+            <span class="item-title">${conv.title}</span>
+            <span class="item-date">${new Date(conv.timestamp).toLocaleDateString()}</span>
           </div>
         `;
-        list.appendChild(div);
+        list.appendChild(item);
       });
     }
 
-    function loadConversation(id) {
+    function showConversationDetail(id) {
       const conversations = getSavedConversations();
       const conversation = conversations.find(conv => conv.id === id);
       if (!conversation) {
         alert("Conversación no encontrada.");
         return;
       }
-      
       selectedConversationId = id;
 
       document.getElementById("page-title").innerText = `Conversación: ${conversation.title}`;
@@ -111,12 +109,18 @@
       document.getElementById("conversation-detail").style.display = 'flex';
       
       const messagesContainer = document.getElementById("messages-container");
-      messagesContainer.innerHTML = "";
+      messagesContainer.innerHTML = '';
+      
       conversation.messages.forEach(msg => {
-        const div = document.createElement("div");
-        div.className = `message ${msg.role === 'user' ? 'user-message' : 'bot-message'}`;
-        try { div.innerHTML = marked.parse(String(msg.text)); } catch(e) { div.textContent = msg.text; }
-        messagesContainer.appendChild(div);
+        const messageDiv = document.createElement("div");
+        messageDiv.className = msg.role === 'user' ? 'user-message' : 'bot-message';
+        // Usamos marked.parse para renderizar markdown si es una respuesta del bot
+        if (msg.role === 'model') {
+            try { messageDiv.innerHTML = marked.parse(String(msg.text)); } catch(e) { messageDiv.textContent = msg.text; }
+        } else {
+            messageDiv.textContent = msg.parts && msg.parts.length > 0 && msg.parts[0].text ? msg.parts[0].text : 'Mensaje sin texto';
+        }
+        messagesContainer.appendChild(messageDiv);
       });
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -129,12 +133,12 @@
     }
 
     function clearAllConversations(){
-      if(!confirm("¿Estás seguro de que quieres borrar TODAS las conversaciones guardadas?")) return;
+      if(!confirm("¿Estás seguro de que quieres borrar TODAS las conversaciones guardadas? Esto es irreversible.")) return;
       localStorage.removeItem("conversations");
       renderConversationsList();
       alert("✅ Conversaciones borradas.");
     }
-
+    
     function useThisConversation() {
       if (selectedConversationId === null) {
         alert("Por favor, selecciona una conversación para usar.");
@@ -153,6 +157,17 @@
       } else {
         alert("Conversación no encontrada.");
       }
+    }
+    
+    function exportAllConversations() {
+      const conversations = getSavedConversations();
+      const blob = new Blob([JSON.stringify(conversations, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "conversaciones_gemini.json";
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     document.addEventListener("DOMContentLoaded", renderConversationsList);

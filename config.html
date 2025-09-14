@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Configuración - Gemini Server</title>
+  <style>
+    :root{ --bg:#121212; --text:#e0e0e0; --btn:#1a73e8; --panel:#1e1e1e; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{ font-family:"Google Sans","Roboto",sans-serif; background:var(--bg); color:var(--text); padding:18px; min-height:100vh; }
+    header{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+    h1{ color:var(--btn); font-size:20px; }
+    .card{ background:var(--panel); padding:16px; border-radius:12px; max-width:900px; margin:0 auto; }
+    label{ display:block; margin-bottom:8px; font-size:14px; }
+    input[type=text]{ width:100%; max-width:520px; padding:10px 12px; border-radius:10px; border:1px solid #333; background:#222; color:var(--text); }
+    .row{ margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    button{ background:var(--btn); color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <button onclick="location.href='index.html'">⬅ Volver</button>
+    <h1>Configuración</h1>
+  </header>
+
+  <div class="card">
+    <label for="apiInput">API Key de Gemini (puedes dejar la key por defecto para pruebas)</label>
+    <input id="apiInput" type="text" placeholder="Introduce tu API Key aquí (guárdala en localStorage)">
+    <div class="row">
+      <button onclick="saveKey()">💾 Guardar</button>
+      <button onclick="resetToDefault()">♻️ Restablecer a DEFAULT</button>
+      <button onclick="showCurrent()">🔎 Mostrar key activa</button>
+    </div>
+    <p style="margin-top:12px;opacity:.8;font-size:13px">La key por defecto (solo para pruebas) está precargada si no guardas otra.</p>
+  </div>
+
+  <script>
+    const DEFAULT_API_KEY = "AIzaSyB6HxCfyney7oI1DX8fbmpJVbS7ApiRhUE";
+    const input = document.getElementById("apiInput");
+    input.value = localStorage.getItem("gemini_api") || DEFAULT_API_KEY;
+
+    function saveKey(){
+      const k = input.value.trim();
+      if(!k) return alert("La API Key no puede estar vacía");
+      try{ localStorage.setItem("gemini_api", k); alert("✅ API Key guardada"); } catch(e){ alert("No se pudo guardar: " + e.message); }
+    }
+    function resetToDefault(){
+      try{
+        localStorage.removeItem("gemini_api");
+        input.value = DEFAULT_API_KEY;
+        alert("✅ Restablecida a DEFAULT. Recarga la página principal si ya estaba abierta.");
+      }catch(e){ alert("Error: " + e.message); }
+    }
+    function showCurrent(){
+      const effective = localStorage.getItem("gemini_api") || DEFAULT_API_KEY;
+      alert("Key activa:\n" + effective);
+    }
+  </script>
+</body>
+</html>

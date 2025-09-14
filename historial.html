@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Historial - Gemini Server</title>
+  <style>
+    :root{ --bg:#121212; --text:#e0e0e0; --btn:#1a73e8; --panel:#1e1e1e; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{ font-family:"Google Sans","Roboto",sans-serif; background:var(--bg); color:var(--text); padding:18px; min-height:100vh; }
+    header{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+    h1{ color:var(--btn); font-size:20px; }
+    .list{ max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:10px; }
+    .item{ background:var(--panel); padding:12px; border-radius:10px; }
+    .controls{ margin-top:12px; display:flex; gap:8px; }
+    button{ background:var(--btn); color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <button onclick="location.href='index.html'">⬅ Volver</button>
+    <h1>Historial de conversaciones</h1>
+  </header>
+
+  <div class="controls">
+    <button onclick="clearHistory()">❌ Borrar historial</button>
+    <button onclick="exportHistory()">📤 Exportar (JSON)</button>
+  </div>
+
+  <div id="list" class="list" style="margin-top:12px;"></div>
+
+  <script>
+    function render(){
+      const raw = localStorage.getItem("chatHistory") || "[]";
+      let arr = [];
+      try{ arr = JSON.parse(raw); }catch(e){ arr = []; }
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+      if(!arr.length){
+        list.innerHTML = "<p style='opacity:.7;text-align:center'>No hay historial guardado.</p>";
+        return;
+      }
+      // Show as grouped messages (pairs)
+      for(let i=0;i<arr.length;i++){
+        const it = arr[i];
+        const div = document.createElement("div"); div.className = "item";
+        div.innerHTML = `<strong>${it.role === 'user' ? 'Usuario' : 'Bot'}:</strong><br><div style="margin-top:6px;white-space:pre-wrap">${escapeHtml(it.text)}</div>`;
+        list.appendChild(div);
+      }
+    }
+    function clearHistory(){
+      if(!confirm("¿Borrar todo el historial?")) return;
+      localStorage.removeItem("chatHistory");
+      render();
+    }
+    function exportHistory(){
+      const raw = localStorage.getItem("chatHistory") || "[]";
+      const blob = new Blob([raw], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "chatHistory.json"; a.click();
+      URL.revokeObjectURL(url);
+    }
+    function escapeHtml(s){
+      if(!s) return "";
+      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+    }
+    render();
+  </script>
+</body>
+</html>

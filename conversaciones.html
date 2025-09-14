@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Conversaciones - Gemini Server</title>
+  <style>
+    :root{ --bg:#121212; --text:#e0e0e0; --btn:#1a73e8; --panel:#1e1e1e; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{ font-family:"Google Sans","Roboto",sans-serif; background:var(--bg); color:var(--text); padding:18px; min-height:100vh; display: flex; flex-direction: column; }
+    header{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+    h1{ color:var(--btn); font-size:20px; }
+    .list, .conversation-view { max-width:900px; width: 100%; margin:0 auto; flex-grow: 1; }
+    .list { display: flex; flex-direction: column; gap: 10px; }
+    .item{ background:var(--panel); padding:12px; border-radius:10px; }
+    .item-header{ display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .item:hover .item-header{ opacity: .8; }
+    .item-header strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%; }
+    .item-header small { flex-shrink: 0; }
+    .item-content { margin-top: 10px; display: none; }
+    .item-content.active { display: block; }
+    .controls{ margin-top:12px; display:flex; gap:8px; }
+    button{ background:var(--btn); color:white; border:none; padding:10px 12px; border-radius:10px; cursor:pointer; }
+    button.small{ padding: 6px 10px; font-size: 12px; }
+    button.secondary{ background: #4a4a4a; }
+    
+    /* Para ver una conversación específica */
+    #conversation-list-wrapper { display: flex; flex-direction: column; flex-grow: 1; }
+    #conversation-detail { display: none; flex-direction: column; gap: 10px; flex-grow: 1; }
+    #conversation-detail .message { padding: 10px 14px; border-radius: 18px; max-width: 80%; word-wrap: break-word; }
+    #conversation-detail .user-message { align-self: flex-end; background: var(--btn); color: #fff; }
+    #conversation-detail .bot-message { align-self: flex-start; background: #2c2c2c; color: var(--text); border: 1px solid #444; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <header>
+    <button onclick="location.href='index.html'">⬅ Volver</button>
+    <h1 id="page-title">Conversaciones</h1>
+  </header>
+
+  <div class="list" id="conversation-list-wrapper">
+    <div id="conversation-list"></div>
+    <div class="controls" style="margin-top: auto; padding-top: 20px;">
+      <button onclick="clearAllConversations()">❌ Borrar todas las conversaciones</button>
+    </div>
+  </div>
+
+  <div class="conversation-view" id="conversation-detail">
+    <div id="messages-container"></div>
+    <div class="controls">
+      <button onclick="showConversationsList()">⬅ Volver a la lista</button>
+      <button onclick="useThisConversation()">Usar esta conversación</button>
+    </div>
+  </div>
+
+  <script>
+    let selectedConversationId = null;
+
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function getSavedConversations() {
+      try {
+        return JSON.parse(localStorage.getItem('conversations') || '[]');
+      } catch (e) {
+        console.error("Error al cargar las conversaciones:", e);
+        return [];
+      }
+    }
+
+    function renderConversationsList(){
+      const conversations = getSavedConversations();
+      const list = document.getElementById("conversation-list");
+      list.innerHTML = "";
+      if (!conversations.length) {
+        list.innerHTML = "<p style='opacity:.7;text-align:center'>No hay conversaciones guardadas.</p>";
+        return;
+      }
+      conversations.forEach(conv => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="item-header" onclick="loadConversation(${conv.id})">
+            <strong>${escapeHtml(conv.title)}</strong>
+            <small>${new Date(conv.timestamp).toLocaleString()}</small>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function loadConversation(id) {
+      const conversations = getSavedConversations();
+      const conversation = conversations.find(conv => conv.id === id);
+      if (!conversation) {
+        alert("Conversación no encontrada.");
+        return;
+      }
+      
+      selectedConversationId = id;
+
+      document.getElementById("page-title").innerText = `Conversación: ${conversation.title}`;
+      document.getElementById("conversation-list-wrapper").style.display = 'none';
+      document.getElementById("conversation-detail").style.display = 'flex';
+      
+      const messagesContainer = document.getElementById("messages-container");
+      messagesContainer.innerHTML = "";
+      conversation.messages.forEach(msg => {
+        const div = document.createElement("div");
+        div.className = `message ${msg.role === 'user' ? 'user-message' : 'bot-message'}`;
+        try { div.innerHTML = marked.parse(String(msg.text)); } catch(e) { div.textContent = msg.text; }
+        messagesContainer.appendChild(div);
+      });
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function showConversationsList() {
+      document.getElementById("page-title").innerText = "Conversaciones";
+      document.getElementById("conversation-list-wrapper").style.display = 'flex';
+      document.getElementById("conversation-detail").style.display = 'none';
+      selectedConversationId = null;
+    }
+
+    function clearAllConversations(){
+      if(!confirm("¿Estás seguro de que quieres borrar TODAS las conversaciones guardadas?")) return;
+      localStorage.removeItem("conversations");
+      renderConversationsList();
+      alert("✅ Conversaciones borradas.");
+    }
+
+    function useThisConversation() {
+      if (selectedConversationId === null) {
+        alert("Por favor, selecciona una conversación para usar.");
+        return;
+      }
+      const conversations = getSavedConversations();
+      const conversation = conversations.find(conv => conv.id === selectedConversationId);
+      if (conversation) {
+        try {
+          localStorage.setItem('chatHistory', JSON.stringify(conversation.messages));
+          alert("✅ Conversación cargada. Redirigiendo...");
+          location.href = 'index.html';
+        } catch(e) {
+          alert("❌ Error al cargar la conversación: " + e);
+        }
+      } else {
+        alert("Conversación no encontrada.");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", renderConversationsList);
+  </script>
+</body>
+</html>

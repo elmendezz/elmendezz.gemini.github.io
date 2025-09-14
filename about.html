@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Acerca de - Gemini Server</title>
+  <style>
+    :root{ --bg:#121212; --text:#e0e0e0; --btn:#1a73e8; --panel:#1e1e1e; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{ font-family:"Google Sans","Roboto",sans-serif; background:var(--bg); color:var(--text); padding:18px; min-height:100vh; }
+    header{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+    header h1{ color:var(--btn); font-size:20px; }
+    .card{ background:var(--panel); padding:16px; border-radius:12px; max-width:900px; margin:0 auto; }
+    p{ line-height:1.6; }
+    .controls{ margin-top:14px; display:flex; gap:8px; }
+    button{ background:var(--btn); color:white; border:none; padding:10px 12px; border-radius:12px; cursor:pointer; }
+    button.secondary{ background:#2c2c2c; }
+  </style>
+</head>
+<body>
+  <header>
+    <button onclick="location.href='index.html'">⬅ Volver</button>
+    <h1>Acerca de</h1>
+  </header>
+
+  <div class="card">
+    <p><strong>Servidor Gemini</strong> — Interfaz local inspirada en la experiencia visual de Google Gemini. 
+    Fue creada por <strong>elmendezz</strong> como un proyecto ligero que permite conectar un frontend simple con la API generativa (Gemini).</p>
+
+    <p>Características principales:</p>
+    <ul>
+      <li>Interfaz minimalista tipo Gemini.</li>
+      <li>Historial local guardado en <code>localStorage</code>.</li>
+      <li>Modo <em>Chat sin memoria</em> (privado).</li>
+      <li>Configuración de API Key desde la interfaz.</li>
+    </ul>
+
+    <p>Cómo lo hizo <strong>elmendezz</strong>: desarrollo modular en HTML/JS puro para máxima compatibilidad (sin frameworks). El cliente llama a la API con la key que guardes en "Configuración" o usa la key por defecto incluida para pruebas.</p>
+
+    <div class="controls">
+      <button onclick="location.href='index.html'">🏠 Ir a Inicio</button>
+      <button onclick="location.href='config.html'">⚙️ Ir a Configuración</button>
+      <button class="secondary" onclick="location.href='historial.html'">📜 Ver Historial</button>
+    </div>
+  </div>
+</body>
+</html>
